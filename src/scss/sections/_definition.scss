@@ -1,0 +1,63 @@
+.definition-title {
+    font-family: 'Source Serif 4';
+    @include media-breakpoint-up(sm) {
+        font-size: 4*$font-size-base;
+    }
+    @include media-breakpoint-down(sm) {
+        font-size: 2.8*$font-size-base;
+    }
+    font-weight: 800;
+}
+
+.definition-pronunciation {
+    font-family: 'Playfair Display';
+    font-size: 1.5rem;
+    padding-left: 2rem;
+}
+
+.definition-type {
+    font-family: 'Source Serif 4';
+    font-weight: 300;
+    padding-left: 2rem;
+}
+
+.definition-hr {
+    border: 1px solid white !important;
+    border-radius: 5px;
+    margin-left: -2rem;
+    margin-right: -2rem;
+}
+
+.definition-text {
+    font-family: 'Playfair Display';
+    font-size: 1.8rem;
+    font-weight: 100;
+}
+
+.definition-origin {
+    font-family: 'Playfair Display';
+    font-size: 1.6rem;
+    font-weight: 100;
+}
+
+.definition-origin.name {
+    font-size: 2.3rem;
+    font-weight: 600;
+}
+
+.definition-origin.greekname {
+    font-weight: 600;
+    font-style: italic;
+}
+
+.definition-origin.nabla {
+    font-size: 2.1rem;
+}
+
+.entry-content {
+    background-image: linear-gradient(180deg,#fff06b,#fff06b);
+    background-repeat: no-repeat;
+    background-position: 4px bottom;
+    background-size: 100% 10px;
+    text-decoration: none;
+}

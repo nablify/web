@@ -1,0 +1,78 @@
+// 
+// Masthead
+// 
+
+.masthead {
+    background-color: $white;
+    // Set top padding to 5rem plus the height of the fixed navbar
+    padding-top: 5rem + 4.5rem;
+    padding-bottom: 5rem;
+
+
+    // Sizing for the device and SVG background circle (sm screen size breakpoint)
+    @include media-breakpoint-up(sm) {
+        .masthead-device-mockup {
+            .circle {
+                width: 70%;
+                display: block;
+            }
+
+            .device-wrapper {
+                max-width: 12.5rem;
+            }
+        }
+    }
+
+    // Sizing for the device and SVG background circle (md screen size breakpoint)
+    @include media-breakpoint-up(md) {
+        .masthead-device-mockup {
+            .circle {
+                width: 60%;
+            }
+
+            .device-wrapper {
+                max-width: 15rem;
+            }
+        }
+    }
+
+    // Sizing for the device and SVG background circle (lg screen size breakpoint)
+    @include media-breakpoint-up(lg) {
+        .masthead-device-mockup {
+            .circle {
+                width: 90%;
+            }
+
+            .device-wrapper {
+                max-width: 15rem;
+            }
+        }
+    }
+
+    // Sizing for the device and SVG background circle (xl screen size breakpoint)
+    @include media-breakpoint-up(xl) {
+        .masthead-device-mockup {
+            .circle {
+                width: 75%;
+            }
+
+            .device-wrapper {
+                max-width: 15rem;
+            }
+        }
+    }
+
+    // Sizing for the device and SVG background circle (xxl screen size breakpoint)
+    @include media-breakpoint-up(xxl) {
+        .masthead-device-mockup {
+            .circle {
+                width: 70%;
+            }
+
+            .device-wrapper {
+                max-width: 17rem;
+            }
+        }
+    }
+
+}
