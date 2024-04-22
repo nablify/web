@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="Solving complex challenges with care. Engineers. Computer Scientists. Both." />
+        <meta name="author" content="nablify" />
+        <meta name="msapplication-TileColor" content="#212d3f" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="robots" content="follow, index" />
+        <title>nablify: make positive change</title>
+        <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg" />
+        <link rel="icon" type="image/png" href="assets/favicon/favicon.png" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet" />
+        <!-- fonts-->
+        <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&amp;family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&amp;family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,200;0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;0,8..60,800;0,8..60,900;1,8..60,200;1,8..60,300;1,8..60,400;1,8..60,500;1,8..60,600;1,8..60,700;1,8..60,800;1,8..60,900&amp;display=swap" rel="stylesheet" />
+        <link href="https://fonts.cdnfonts.com/css/metropolis-2" rel="stylesheet" />
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- map-->
+        <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
+        <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+        <!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec3 vPos;
+            void main(void){
+              gl_Position = vec4(vPos, 1.);
+            }
+        </script>
+        <script id="shader-fs" type="x-shader/x-fragment">
+            precision highp float;
+            uniform vec2 ComplexConstant;
+            uniform float fViewportSize;
+            uniform float blend;
+            void main(void)
+            {
+               const int nMaxIter = 128;
+               float R = 3.5 * (gl_FragCoord.x - fViewportSize / 2.0)  / fViewportSize - 0.25;
+               float I = 3.5 * (gl_FragCoord.y - fViewportSize / 2.0)  / fViewportSize;
+               float Real0 = R;
+               float Imag0 = I;
+               int LastIter;
+               float fRealConstant = blend * ComplexConstant.x + (1.0 - blend ) * Real0;
+               float fImagConstant = blend * ComplexConstant.y + (1.0 - blend ) * Imag0;
+               float R2 = R*R;
+               float I2 = I*I;
+                           for(int iter = 0; iter < nMaxIter; iter ++){
+            		I=(R+R)*I + fImagConstant;
+            		R=R2-I2 + fRealConstant;
+            		R2=R*R;
+            		I2=I*I;
+            		LastIter = iter ;
+            		if( R2+I2 > 4.0 )
+            			break;
+            	 }
+               if (LastIter  == nMaxIter-1) {
+                  gl_FragColor = vec4(0., 0., 0., 1.);
+               } else {
+                  float fValue = mod(float(LastIter),2.0);
+                  float angle = 2.0 * 3.14 * float(LastIter) / float(nMaxIter) ;
+                  gl_FragColor = vec4(1.0 - (0.5+0.5*cos(angle*2.0)),
+            		    				1.0 - (0.5+0.5*cos(angle*3.0)),
+            			    			1.0 - (0.5+0.5*cos(angle*5.0)),
+            				    		1.0);
+              }
+            }
+        </script>
+        <script type="text/javascript">
+            function getShader(gl, id) {
+                var shaderScript = document.getElementById(id);
+                var str = '';
+                var k = shaderScript.firstChild;
+                var shader;
+                while (k) {
+                    if (k.nodeType == 3) str += k.textContent;
+                    k = k.nextSibling;
+                }
+                if (shaderScript.type == 'x-shader/x-fragment') {
+                    shader = gl.createShader(gl.FRAGMENT_SHADER);
+                } else {
+                    if (shaderScript.type == 'x-shader/x-vertex') {
+                        shader = gl.createShader(gl.VERTEX_SHADER);
+                    } else {
+                        return null;
+                    }
+                }
+                gl.shaderSource(shader, str);
+                gl.compileShader(shader);
+                if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) == 0) {
+                    alert(gl.getShaderInfoLog(shader));
+                }
+                return shader;
+            }
+
+            requestAnimFrame = (function () {
+                return (
+                    window.webkitRequestAnimationFrame ||
+                    window.mozRequestAnimationFrame ||
+                    function (callback, element) {
+                        window.setTimeout(callback, 1000 / 60);
+                    }
+                );
+            })();
+
+            var gl, canvas;
+            var cLoc,
+                size,
+                frames = 0,
+                BlendLoc,
+                Blend,
+                ViewportSizeLoc;
+            function init_animation() {
+                canvas = document.getElementById('canvas');
+                size = Math.min(canvas.width, canvas.height);
+                canvas.width = size;
+                canvas.height = size;
+                if (!window.WebGLRenderingContext) {
+                    alert('Your browser does not support WebGL. See http://get.webgl.org');
+                    return;
+                }
+                try {
+                    gl = canvas.getContext('experimental-webgl');
+                    if (!gl) {
+                        // if failed, try experimental one
+                        gl = canvas.getContext('webgl');
+                        if (!gl) {
+                            alert('Your browser does not support WebGL');
+                            return;
+                        }
+                    }
+                } catch (e) {}
+
+                gl.viewport(0, 0, size, size);
+                var prog = gl.createProgram();
+                gl.attachShader(prog, getShader(gl, 'shader-vs'));
+                gl.attachShader(prog, getShader(gl, 'shader-fs'));
+                gl.linkProgram(prog);
+                gl.useProgram(prog);
+                var posAtrLoc = gl.getAttribLocation(prog, 'vPos');
+                gl.enableVertexAttribArray(posAtrLoc);
+                var posBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+                var vertices = new Float32Array([-1.0, -1.0, 0.0, 1.0, -1.0, 0.0, -1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 1.0, 0.0]);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+                gl.vertexAttribPointer(posAtrLoc, 3, gl.FLOAT, false, 0, 0);
+                cLoc = gl.getUniformLocation(prog, 'ComplexConstant');
+                BlendLoc = gl.getUniformLocation(prog, 'blend');
+                ViewportSizeLoc = gl.getUniformLocation(prog, 'fViewportSize');
+                gl.uniform1f(ViewportSizeLoc, size);
+                anim();
+            }
+
+            function anim() {
+                var tim = new Date().getTime() / 1000;
+                var Real = Math.sin(tim / 4.1);
+                var Imag = Math.cos(tim / 4.1);
+                var Blend = Math.sin(tim / 3.1) * Math.cos(tim / 5.2);
+                gl.uniform2f(cLoc, Real, Imag);
+                gl.uniform1f(BlendLoc, Blend);
+                drawScene();
+                frames++;
+                requestAnimFrame(anim);
+            }
+
+            function drawScene() {
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                gl.flush();
+            }
+        </script>
+        <script>
+            MathJax = {
+                loader: { load: ['input/asciimath', 'output/chtml'] },
+            };
+        </script>
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="css/styles.css" rel="stylesheet" />
+    </head>
+    <body id="top" onLoad="init_animation();">
+        <!-- navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow-sm" id="mainNav">
+            <div class="container px-5">
+                <a class="navbar-brand fw-bold" href="#top"><img src="assets/img/logo.svg" alt="..." style="height: 3rem" /></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation"><i class="bi-list"></i></button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ms-auto me-4 my-3 my-lg-0">
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#expertise">Expertise</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#services">Services</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#stories">Stories</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#values">Values</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#team">Team</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#careers">Join</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#partners">Partners</a></li>
+                    </ul>
+                    <button class="btn btn-secondary rounded-pill px-3 mb-2 mb-lg-0">
+                        <span class="d-flex align-items-center">
+                            <i class="bi-chat-text-fill me-2"></i>
+                            <a class="small text-decoration-none" href="#contact">Let's talk</a>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- masthead header-->
+        <header class="masthead">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center">
+                    <div class="col-lg-7">
+                        <!-- masthead text and app badges-->
+                        <div class="mb-5 mb-lg-7 text-center text-lg-start">
+                            <h1 class="display-1 lh-1 mb-3">Solving complex challenges with care.</h1>
+                            <p class="lead fw-normal text-muted mb-5">Engineers. Computer scientists. Both.</p>
+                        </div>
+                        <button class="btn btn-primary rounded-pill px-3 mb-2 mb-lg-0">
+                            <span class="d-flex align-items-center"><a class="small text-white text-decoration-none" href="#expertise">Discover more</a></span>
+                        </button>
+                    </div>
+                    <div class="col-lg-5 mt-5"><canvas class="img-fluid rounded-circle mx-auto d-block mb-5" id="canvas" width="400" height="400"></canvas></div>
+                </div>
+            </div>
+        </header>
+        <!-- definition section-->
+        <section class="bg-primary">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center text-white justify-content-center">
+                    <div class="col-lg-8">
+                        <p class="definition-title">nablify</p>
+                        <span class="definition-pronunciation fs-3">
+                            /'n&#xe6;-bli-figh/
+                            <span class="definition-type">verb</span>
+                        </span>
+                        <hr class="definition-hr" />
+                        <p class="definition-text fs-4">
+                            care and make remarkable change happen with a state-of-the-art solution to a challenge using science and technology.
+                            <br />
+                            <br />
+                        </p>
+                        <p class="definition-origin fs-4">
+                            <span class="definition-origin name fs-3">ORIGIN</span>
+                            from
+                            <span class="definition-origin greekname">'nabla'</span>
+                            <span>, mathematical symbol and operator</span>
+                            <span class="definition-origin nabla fs-3">\( \nabla \)</span>
+                            <span>used to determine the direction of the greatest change in a function.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- expertise section-->
+        <section id="expertise">
+            <div class="container px-5">
+                <h2 class="display-4 lh-1 mb-4">Expertise</h2>
+                <div class="row align-items-center mt-5">
+                    <div class="col order-lg-3 mb-5">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-4 mb-5">
+                                    <!-- expertise engineering-->
+                                    <div class="text-center">
+                                        <i class="bi-gear-wide-connected icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Engineering</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">
+                                            Multi-physics
+                                            <span class="fw-bold">simulations</span>
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">Connectivity</span>
+                                            &amp;
+                                            <span class="fw-bold">integration</span>
+                                            of engineering tools
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            Usage of
+                                            <span class="fw-bold">high-tech</span>
+                                            to solve engineering problems
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-5">
+                                    <!-- expertise scientific computing-->
+                                    <div class="text-center">
+                                        <i class="bi-cpu icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Scientific Computing</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">
+                                            Transition to
+                                            <span class="fw-bold">cloud/super-computing</span>
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            Migration of
+                                            <span class="fw-bold">legacy</span>
+                                            to modern systems
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            Large-scale data
+                                            <span class="fw-bold">preparation</span>
+                                            &amp;
+                                            <span class="fw-bold">ingestion</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-5">
+                                    <!-- expertise smart systems-->
+                                    <div class="text-center">
+                                        <i class="bi-lightbulb icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Smart Systems</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">Automation</span>
+                                            &amp;
+                                            <span class="fw-bold">design</span>
+                                            of smart systems
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">IoT platform/hub</span>
+                                            development
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            System
+                                            <span class="fw-bold">architecture</span>
+                                            &amp; integration
+                                        </p>
+                                        <span id="services"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container px-5">
+                <h2 class="display-4 lh-1 mb-4">Services</h2>
+                <div class="row align-items-center mt-5">
+                    <div class="col order-lg-8">
+                        <div class="container-fluid">
+                            <div class="row gx-5">
+                                <div class="col-md-4 mb-5">
+                                    <!-- service implementation-->
+                                    <div class="text-center">
+                                        <i class="bi-rocket-takeoff icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Implementation</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">
+                                            Code
+                                            <span class="fw-bold">development,</span>
+                                            automation, and testing
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            Custom
+                                            <span class="fw-bold">pipelines</span>
+                                            &amp; application software
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">DevOps</span>
+                                            &amp; CI/CD
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-5">
+                                    <!-- service general advisory-->
+                                    <div class="text-center">
+                                        <i class="bi-chat-heart icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Advisory</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">Digital asset</span>
+                                            management
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">DevOps</span>
+                                            &amp;
+                                            <span class="fw-bold">system architecture</span>
+                                        </p>
+                                        <p class="text-muted mb-2">
+                                            <span class="fw-bold">(Scientific) reproducibility</span>
+                                            &amp; ethics
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-5">
+                                    <!-- service training //Coaching-->
+                                    <div class="text-center">
+                                        <i class="bi-journal-check icon-feature text-gradient d-block mb-3"></i>
+                                        <h3 class="font-alt">Academy</h3>
+                                        <hr />
+                                        <p class="text-muted mb-2">Reproducible programming (DevOPs, git, ...)</p>
+                                        <p class="text-muted mb-2">High-performance computing (pods, Julia, ...)</p>
+                                        <p class="text-muted mb-2">Computer &amp; data science</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- aims section-->
+        <section class="bg-gradient-primary-to-secondary text-white" id="aims">
+            <div class="container px-5">
+                <div class="row align-items-center"></div>
+                <h2 class="display-4 lh-1">Get ready to nablify!</h2>
+                <div class="col order-lg-2 mb-lg-0">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-4 mt-5">
+                                <div class="text-center">
+                                    <i class="bi-house-heart icon-feature text-white d-block mb-3"></i>
+                                    <h3 class="font-alt">Ownable</h3>
+                                    <hr />
+                                    <p class="text-white mb-2">
+                                        We forge
+                                        <span class="fw-bold">champions inside</span>
+                                        your team
+                                    </p>
+                                    <p class="text-white mb-2">
+                                        We
+                                        <span class="fw-bold">blend in</span>
+                                        &amp;
+                                        <span class="fw-bold">integrate</span>
+                                        with your team
+                                    </p>
+                                    <p class="text-white mb-2">We valorize your own data</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mt-5">
+                                <div class="text-center">
+                                    <i class="bi-bar-chart icon-feature text-white d-block mb-3"></i>
+                                    <h3 class="font-alt">Scalable</h3>
+                                    <hr />
+                                    <p class="text-white mb-2">
+                                        We
+                                        <span class="fw-bold">automate</span>
+                                        your processes
+                                    </p>
+                                    <p class="text-white mb-2">
+                                        We thrive to
+                                        <span class="fw-bold">reduce errors</span>
+                                    </p>
+                                    <p class="text-white mb-2">
+                                        We facilitate so you can
+                                        <span class="fw-bold">serve more</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mt-5">
+                                <div class="text-center">
+                                    <i class="bi-arrow-repeat icon-feature text-white d-block mb-3"></i>
+                                    <h3 class="font-alt">Sustainable</h3>
+                                    <hr />
+                                    <p class="text-white mb-2">
+                                        We
+                                        <span class="fw-bold">reuse</span>
+                                        what you already have
+                                    </p>
+                                    <p class="text-white mb-2">
+                                        We guide to
+                                        <span class="fw-bold">use resources efficiently</span>
+                                    </p>
+                                    <p class="text-white mb-2">
+                                        We find the
+                                        <span class="fw-bold">most efficient path</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- stories section-->
+        <section id="stories">
+            <div class="container px-5">
+                <h2 class="display-4 lh-1">Stories</h2>
+                <div class="row gx-5 mt-5">
+                    <div class="col-lg-5 mt-5">
+                        <h4 class="text-center">
+                            "To scale up, we lack experience.
+                            <br />
+                            Can we
+                            <text class="fw-bold">nablify</text>
+                            ?"
+                        </h4>
+                        <img class="img-fluid rounded-circle mx-auto d-block mt-5" src="assets/img/portfolio/use-case-3.jpg" style="height: 18em" />
+                    </div>
+                    <div class="col-lg-7 mt-5">
+                        <h2>Enable scalable & reproducible workflows</h2>
+                        <h5 class="mt-4 text-muted">Challenge</h5>
+                        <p class="text-muted mb-2">Investigate millions of parameter configurations of an engineering analysis pipeline</p>
+                        <h5 class="mt-4 text-muted">Solution</h5>
+                        <p class="text-muted mb-2">
+                            - Implement analysis pipelines that seamlessly integrate with existing data sources and processes
+                            <br />
+                            - Scale the analysis pipeline to a secure high-performance platform
+                            <br />
+                            - Generate reports automatically based on the analysis results
+                        </p>
+                        <h5 class="mt-4 text-muted">Benefits</h5>
+                        <p class="text-muted mb-2">
+                            - Gain system insights at large scale
+                            <br />
+                            - Reuse existing processes and data
+                            <br />
+                            - Reduce significantly manual interventions
+                        </p>
+                    </div>
+                </div>
+                <div class="row gx-5 justify-content mt-5">
+                    <div class="col-lg-5 mb-5"></div>
+                    <div class="col-lg-7">
+                        <img class="m-1 px-1" src="assets/img/tools/slurm.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/julia.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/apptainer.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/kubernetes.svg" style="height: 2em" />
+                    </div>
+                    <hr class="mt-5" />
+                </div>
+                <!-- story 2-->
+                <div class="row gx-5">
+                    <div class="col-lg-5 mt-5">
+                        <h4 class="text-center">
+                            "We have so much data. But we don't know what to do with it!
+                            <br />
+                            Can we
+                            <text class="fw-bold">nablify</text>
+                            ?"
+                        </h4>
+                        <img class="img-fluid rounded-circle mx-auto d-block mt-5" src="assets/img/portfolio/use-case-4.jpg" style="height: 18em" />
+                    </div>
+                    <div class="col-lg-7 mt-5">
+                        <h2>Achieve data-driven agility</h2>
+                        <h5 class="mt-4 text-muted">Challenge</h5>
+                        <p class="text-muted mb-2">Tackle the complexity of integrating diverse data sets to gain hidden insights.</p>
+                        <h5 class="mt-4 text-muted">Solution</h5>
+                        <p class="text-muted mb-2">
+                            - Implement a custom-built hub to seamlessly manage and unify data streams.
+                            <br />
+                            - Automate existing processes to streamline operations and enhance efficiency.
+                        </p>
+                        <h5 class="mt-4 text-muted">Benefits</h5>
+                        <p class="text-muted mb-2">
+                            - Data-driven decision-making
+                            <br />
+                            - Access clean and organized data streams for training AI models
+                            <br />
+                            - Customized cloud-based dashboards for real-time analysis and actionable insights
+                            <br />
+                            - Seamless integration of existing systems for unified data management
+                        </p>
+                    </div>
+                </div>
+                <div class="row gx-5 justify-content mt-5">
+                    <div class="col-lg-5 mb-5"></div>
+                    <div class="col-lg-7">
+                        <img class="m-1 px-1" src="assets/img/tools/google_cloud.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/python.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/gitlab.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/docker.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/postgresql.svg" style="height: 2em" />
+                    </div>
+                    <hr class="mt-5" />
+                </div>
+                <!-- story 3-->
+                <div class="row gx-5">
+                    <div class="col-lg-5 mt-5">
+                        <h4 class="text-center mt-2">
+                            "We need to digitalize our business
+                            <br />
+                            Can we
+                            <text class="fw-bold">nablify</text>
+                            ?"
+                        </h4>
+                        <img class="img-fluid rounded-circle mx-auto d-block mt-5" src="assets/img/portfolio/use-case-10.jpg" style="height: 18em" />
+                    </div>
+                    <div class="col-lg-7 mt-5">
+                        <h2>Emphasize the benefits of modern systems</h2>
+                        <h5 class="mt-4 text-muted">Challenge</h5>
+                        <p class="text-muted mb-2">Outdated systems and/or processes hinder business agility, efficiency, and security</p>
+                        <h5 class="mt-4 text-muted">Solution</h5>
+                        <p class="text-muted mb-2">
+                            - Seamlessly transition from legacy to cloud-based solutions without disruption and interruption
+                            <br />
+                            - Leverage a robust ETL pipeline to stream data into a relational database
+                        </p>
+                        <h5 class="mt-4 text-muted">Benefits</h5>
+                        <p class="text-muted mb-2">
+                            - Experience a resilient and scalable cloud-based system with secure access
+                            <br />
+                            - Repurpose existing data assets with no data loss during the migration process
+                            <br />
+                            - Extend the lifespan of legacy tools by integrating them into the new system
+                            <br />
+                            - Minimize the need for complete redevelopment
+                        </p>
+                    </div>
+                </div>
+                <div class="row gx-5 justify-content mt-5">
+                    <div class="col-lg-5 mb-5"></div>
+                    <div class="col-lg-7">
+                        <img class="m-1 px-1" src="assets/img/tools/julia.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/fortran.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/r.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/latex.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/docker.svg" style="height: 2em" />
+                        <img class="m-1 px-1" src="assets/img/tools/mysql.svg" style="height: 2em" />
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- values section-->
+        <section class="bg-primary text-white" id="values">
+            <div class="container px-5">
+                <div class="row align-items-center"></div>
+                <h2 class="display-4 lh-1">Values</h2>
+                <div class="col order-lg-12 mb-lg-0 align-items-center">
+                    <div class="row justify-content-center">
+                        <div class="col px-5 text-center mt-5">
+                            <i class="bi-patch-check icon-feature text-white d-block mb-3"></i>
+                            <h3 class="font-alt">Excellence</h3>
+                            <hr />
+                            <p class="text-white mb-2">We set high standards for quality, performance, and satisfaction.</p>
+                        </div>
+                        <div class="col px-5 text-center mt-5">
+                            <i class="bi-intersect icon-feature text-white d-block mb-3"></i>
+                            <h3 class="font-alt">Integrity</h3>
+                            <hr />
+                            <p class="text-white mb-2">We build on trust & act with honesty, transparency, and integrity.</p>
+                        </div>
+                        <div class="col px-5 text-center mt-5">
+                            <i class="bi-sunrise icon-feature text-white d-block mb-3"></i>
+                            <h3 class="font-alt">Continuity</h3>
+                            <hr />
+                            <p class="text-white mb-2">We are resilient in the face of challenges and leverage setbacks as opportunities.</p>
+                        </div>
+                        <div class="col px-5 text-center mt-5">
+                            <i class="bi-bullseye icon-feature text-white d-block mb-3"></i>
+                            <h3 class="font-alt">Responsibility</h3>
+                            <hr />
+                            <p class="text-white mb-2">We take ownership, take initiative, and assume responsibility.</p>
+                        </div>
+                        <div class="col px-5 text-center mt-5">
+                            <i class="bi-magic icon-feature text-white d-block mb-3"></i>
+                            <h3 class="font-alt">Adaptability</h3>
+                            <hr />
+                            <p class="text-white mb-2">We embrace change and continuous innovation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="team">
+            <div class="container px-5">
+                <h2 class="display-4 lh-1 mb-4">Leadership</h2>
+                <div class="row mb-5">
+                    <div class="col-md-3 mt-5"></div>
+                    <div class="col-md-6 mt-5">
+                        <div class="text-center">
+                            <img class="img-fluid rounded-circle mx-auto d-block mb-5" src="assets/img/team/laurent_heirendt.jpg" alt="Dr. Laurent HEIRENDT" style="height: 15em" />
+                            <h3 class="font-alt">
+                                Dr. Laurent
+                                <span class="fw-bold">HEIRENDT</span>
+                            </h3>
+                            <p class="mb-2">Founder & CEO</p>
+                            <hr />
+                            <p class="text-muted mb-2">
+                                PhD Aerospace Science &amp; Engineering
+                                <br />
+                                Holder of patent for aircraft landing gear
+                                <br />
+                                Profound experience in engineering, scientific computing &amp; smart systems
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mt-5"></div>
+                </div>
+                <h2 class="display-4 lh-1 mb-4">Advisory Team</h2>
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6 col-md-6 col-sm-12 mt-5">
+                            <div class="text-center">
+                                <img class="img-fluid rounded-circle mx-auto d-block mb-5" src="assets/img/team/mario_bauer.jpg" alt="Mr. Mario C. BAUER" style="height: 15em" />
+                                <h3 class="font-alt">
+                                    Mr. Mario C.
+                                    <span class="fw-bold">BAUER</span>
+                                </h3>
+                                <p class="mb-2">
+                                    Advisor
+                                    <span class="fw-bold">Strategy & Business Development</span>
+                                </p>
+                                <hr />
+                                <p class="text-muted mb-2">
+                                    Entrepreneur, Brand Ambassador, Author
+                                    <br />
+                                    Former head of global expansion at Vapiano
+                                    <br />
+                                    Brand Ambassador at AmRest
+                                    <br />
+                                    Founder of several startups
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 mt-5">
+                            <div class="text-center">
+                                <img class="img-fluid rounded-circle mx-auto d-block mb-5" src="assets/img/team/christopher_jones.jpg" alt="Mr. Christopher JONES" style="height: 15em" />
+                                <h3 class="font-alt">
+                                    Mr. Christopher
+                                    <span class="fw-bold">JONES</span>
+                                </h3>
+                                <p class="mb-2">
+                                    Advisor
+                                    <span class="fw-bold">Strategy & Operations</span>
+                                </p>
+                                <hr />
+                                <p class="text-muted mb-2">
+                                    Entrepreneur & CEO
+                                    <br />
+                                    Managing Director at Brioche Dorée
+                                    <br />
+                                    President of Alumni Association Glion
+                                    <br />
+                                    Visionary leader in the food & beverage (F&B) industry
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- call to action section-->
+        <section class="cta" id="careers">
+            <div class="cta-content">
+                <div class="container px-5">
+                    <h2 class="text-white display-1 lh-1 mb-4">Ready to nablify?</h2>
+                    <a class="btn btn-outline-light py-3 px-4 rounded-pill" href="https://www.linkedin.com/company/nablify/">
+                        Find your next opportunity &nbsp;
+                        <i class="bi bi-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+        <section id="partners">
+            <div class="container px-5">
+                <h2 class="display-4 lh-1 mb-4">Partners</h2>
+                <h5 class="text-muted">Our partners are leaders in the following sectors:</h5>
+                <div class="row justify-content-center">
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-airplane icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Aerospace</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-shield-check icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Defense</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-battery-charging icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Energy</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-heart-pulse icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Healthcare</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-cart4 icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Food &amp; Beverage</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mt-5">
+                        <div class="text-center">
+                            <i class="bi-bricks icon-feature d-block mb-3"></i>
+                            <h3 class="font-alt">Construction</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="bg-primary" id="contact">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center justify-content-lg-between">
+                    <div class="col-lg-6 text-white">
+                        <h2 class="display-4 lh-1 mb-4">Let's talk</h2>
+                        <br />
+                        <p class="lead fw-normal mb-5 mb-lg-0">
+                            We speak English, French, German,
+                            <br />
+                            Luxembourgish, and Portuguese.
+                        </p>
+                        <br />
+                        <br />
+                        <p class="lead fw-normal mb-5 mb-lg-0">
+                            hello@nablify.com &nbsp;&nbsp; / &nbsp;&nbsp;
+                            <a class="text-white text-decoration-none" href="https://www.linkedin.com/company/nablify/" target="_blank"><i class="bi bi-linkedin"></i></a>
+                            <br />
+                            <br />
+                        </p>
+                        <p class="lead fw-normal text-white mt-5">
+                            4, Op de Leemen
+                            <br />
+                            L-5846 Fentange
+                            <br />
+                            Luxembourg, Europe
+                            <br />
+                            <br />
+                            <p class="text-muted">49°33'43.7"N 6°08'54.6"E</p>
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="map-container mt-5"><iframe class="rounded-circle responsive-iframe" src="https://www.openstreetmap.org/export/embed.html?bbox=5.95836639404297%2C49.42325732410983%2C6.338424682617188%2C49.70050312905713&amp;marker=49.56215181072835%2C6.148392856121063" width="700" height="500" frameborder="0"></iframe></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- footer-->
+        <footer class="bg-white text-center py-5">
+            <div class="container px-5">
+                <div class="small mb-2">Registration #: B 28 28 56 &nbsp;&nbsp; VAT #: LU 354 109 67</div>
+                <div class="small mb-2">
+                    Follow us:
+                    <a href="https://www.linkedin.com/company/nablify/"><i class="bi bi-linkedin"></i></a>
+                </div>
+                <div class="small mb-2 mt-2"><div id="dateDiv">___</div></div>
+            </div>
+        </footer>
+        <script>
+            link_mainURL = '<i class="bi bi-c-square"></i>&nbsp;&nbsp;<a href="https://www.nablify.com">nablify</a>&nbsp;-&nbsp;';
+            document.getElementById('dateDiv').innerHTML = link_mainURL + new Date().getFullYear() + '.&nbsp;&nbsp;';
+        </script>
+    </body>
+</html>
