@@ -35,7 +35,7 @@ module.exports = function renderSCSS() {
 
 const entryPoint = `/*!
 * ${packageJSON.title} v${packageJSON.version} (${packageJSON.homepage})
-* Copyright 2023-${new Date().getFullYear()} ${packageJSON.author}
+* Copyright 2024-${new Date().getFullYear()} ${packageJSON.author}
 * Licensed under ${packageJSON.license} (https://github.com/nablify/${packageJSON.name}/blob/master/LICENSE)
 */
 @import "${stylesPath}"
